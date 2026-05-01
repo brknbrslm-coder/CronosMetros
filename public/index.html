@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CronosMetros - Sınav hazırlık sürecini takip eden akıllı kronometre uygulaması. Deneme sürelerini kaydet, net hesapla, gelişimini analiz et.">
+    <title>CronosMetros — Akıllı Sınav Kronometresi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- ===== SIDEBAR NAVIGATION ===== -->
+    <nav id="sidebar" class="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon">
+                <svg viewBox="0 0 40 40" fill="none">
+                    <circle cx="20" cy="20" r="18" stroke="url(#brandGrad)" stroke-width="2.5"/>
+                    <line x1="20" y1="8" x2="20" y2="20" stroke="url(#brandGrad)" stroke-width="2.5" stroke-linecap="round"/>
+                    <line x1="20" y1="20" x2="28" y2="26" stroke="url(#brandGrad)" stroke-width="2" stroke-linecap="round"/>
+                    <circle cx="20" cy="20" r="2.5" fill="url(#brandGrad)"/>
+                    <defs>
+                        <linearGradient id="brandGrad" x1="0" y1="0" x2="40" y2="40">
+                            <stop offset="0%" stop-color="#6C63FF"/>
+                            <stop offset="100%" stop-color="#00D2FF"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            <span class="brand-text">CronosMetros</span>
+        </div>
+
+        <div class="sidebar-menu">
+            <button class="nav-btn active" data-page="timer" id="nav-timer">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="13" r="8"/>
+                    <path d="M12 9v4l2 2"/>
+                    <path d="M5 3L2 6"/>
+                    <path d="M22 6l-3-3"/>
+                    <path d="M12 2v3"/>
+                </svg>
+                <span>Kronometre</span>
+            </button>
+            <button class="nav-btn" data-page="history" id="nav-history">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                    <path d="M12 7v5l4 2"/>
+                </svg>
+                <span>Geçmiş</span>
+            </button>
+            <button class="nav-btn" data-page="analysis" id="nav-analysis">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 20V10"/>
+                    <path d="M12 20V4"/>
+                    <path d="M6 20v-6"/>
+                </svg>
+                <span>Analiz</span>
+            </button>
+            <button class="nav-btn" data-page="topics" id="nav-topics">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                </svg>
+                <span>Konu Takip</span>
+            </button>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="sidebar-user-info">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span id="sidebar-user">Kullanıcı</span>
+            </div>
+            <button class="nav-btn" id="btn-export-data" title="Verileri Dışa Aktar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span>Dışa Aktar</span>
+            </button>
+            <button class="nav-btn" id="btn-logout" title="Çıkış Yap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                <span>Çıkış Yap</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ===== MOBILE HEADER ===== -->
+    <header id="mobile-header" class="mobile-header">
+        <button id="mobile-menu-btn" class="mobile-menu-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+        </button>
+        <span class="mobile-brand">CronosMetros</span>
+    </header>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main id="main-content" class="main-content">
+
+        <!-- ========== TIMER PAGE ========== -->
+        <section id="page-timer" class="page active">
+            <div class="page-header">
+                <h1>Kronometre</h1>
+                <p class="page-subtitle">Deneme süresini ölç ve kaydet</p>
+            </div>
+
+            <div class="timer-container">
+                <div class="timer-display-wrapper">
+                    <div class="timer-ring">
+                        <svg viewBox="0 0 280 280" class="timer-ring-svg">
+                            <circle cx="140" cy="140" r="130" class="timer-ring-bg"/>
+                            <circle cx="140" cy="140" r="130" class="timer-ring-progress" id="timer-ring-progress"/>
+                        </svg>
+                        <div class="timer-display" id="timer-display">
+                            <span class="timer-hours" id="timer-hours">00</span>
+                            <span class="timer-sep">:</span>
+                            <span class="timer-minutes" id="timer-minutes">00</span>
+                            <span class="timer-sep">:</span>
+                            <span class="timer-seconds" id="timer-seconds">00</span>
+                            <span class="timer-ms" id="timer-ms">.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timer-controls">
+                    <button class="timer-btn btn-start" id="btn-start">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        <span>Başlat</span>
+                    </button>
+                    <button class="timer-btn btn-pause hidden" id="btn-pause">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                        <span>Duraklat</span>
+                    </button>
+                    <button class="timer-btn btn-resume hidden" id="btn-resume">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        <span>Devam</span>
+                    </button>
+                    <button class="timer-btn btn-stop hidden" id="btn-stop">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+                        <span>Bitir</span>
+                    </button>
+                    <button class="timer-btn btn-reset hidden" id="btn-reset">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        <span>Sıfırla</span>
+                    </button>
+                    <button class="timer-btn btn-save hidden" id="btn-save-time">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                        <span>Kaydet</span>
+                    </button>
+                </div>
+
+                <!-- Lap Times -->
+                <div class="lap-section hidden" id="lap-section">
+                    <h3 class="section-title">Tur Süreleri</h3>
+                    <div class="lap-list" id="lap-list"></div>
+                </div>
+            </div>
+
+            <!-- Save Session Modal -->
+            <div class="modal-overlay hidden" id="modal-save">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h2>Kayıt Detayları</h2>
+                        <button class="modal-close" id="modal-save-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="session-name">Kayıt Adı *</label>
+                            <input type="text" id="session-name" placeholder="örn: TYT Deneme 15" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="session-subject">Ders / Kategori *</label>
+                                <div class="combo-input">
+                                    <input type="text" id="session-subject" placeholder="örn: Matematik" list="subject-list" required>
+                                    <datalist id="subject-list"></datalist>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="session-date">Tarih</label>
+                                <input type="date" id="session-date">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Süre</label>
+                            <div class="saved-duration" id="saved-duration">00:00:00</div>
+                        </div>
+
+                        <div class="form-divider">
+                            <span>Skor Bilgileri (Opsiyonel)</span>
+                        </div>
+
+                        <div class="form-row triple">
+                            <div class="form-group">
+                                <label for="session-total">Toplam Soru</label>
+                                <input type="number" id="session-total" min="0" placeholder="40">
+                            </div>
+                            <div class="form-group">
+                                <label for="session-correct">Doğru</label>
+                                <input type="number" id="session-correct" min="0" placeholder="0" class="input-correct">
+                            </div>
+                            <div class="form-group">
+                                <label for="session-wrong">Yanlış</label>
+                                <input type="number" id="session-wrong" min="0" placeholder="0" class="input-wrong">
+                            </div>
+                        </div>
+
+                        <div class="form-row double">
+                            <div class="form-group">
+                                <label>Boş</label>
+                                <div class="computed-value" id="session-blank">0</div>
+                            </div>
+                            <div class="form-group">
+                                <label>Net</label>
+                                <div class="computed-value highlight" id="session-net">0.00</div>
+                            </div>
+                        </div>
+
+                        <div class="form-divider">
+                            <span>Yanlış Konular (Opsiyonel)</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="wrong-topic-input">Konu Ekle</label>
+                            <div class="tag-input-wrapper">
+                                <input type="text" id="wrong-topic-input" placeholder="Konu adı yazıp Enter'a basın" list="topic-suggestions">
+                                <datalist id="topic-suggestions"></datalist>
+                            </div>
+                            <div class="tag-list" id="wrong-topics-list"></div>
+                        </div>
+
+                        <div class="form-divider">
+                            <span>Notlar (Opsiyonel)</span>
+                        </div>
+                        <div class="form-group">
+                            <textarea id="session-notes" rows="3" placeholder="Bu denemeyle ilgili notlarınız..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" id="modal-save-cancel">İptal</button>
+                        <button class="btn btn-primary" id="modal-save-confirm">Kaydet</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== HISTORY PAGE ========== -->
+        <section id="page-history" class="page">
+            <div class="page-header">
+                <h1>Geçmiş</h1>
+                <p class="page-subtitle">Tüm kayıtlarını incele ve filtrele</p>
+            </div>
+
+            <div class="filter-bar">
+                <div class="filter-group">
+                    <label>Ders:</label>
+                    <select id="filter-subject">
+                        <option value="">Tümü</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Sırala:</label>
+                    <select id="filter-sort">
+                        <option value="date-desc">En Yeni</option>
+                        <option value="date-asc">En Eski</option>
+                        <option value="net-desc">En Yüksek Net</option>
+                        <option value="net-asc">En Düşük Net</option>
+                        <option value="duration-desc">En Uzun Süre</option>
+                        <option value="duration-asc">En Kısa Süre</option>
+                    </select>
+                </div>
+                <div class="filter-group search-group">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="filter-search" placeholder="Kayıt ara...">
+                </div>
+            </div>
+
+            <div class="history-stats" id="history-stats"></div>
+            <div class="history-list" id="history-list">
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <p>Henüz kayıt yok</p>
+                    <span>Kronometreyle bir deneme ölçüp kaydedin</span>
+                </div>
+            </div>
+
+            <!-- Detail Modal -->
+            <div class="modal-overlay hidden" id="modal-detail">
+                <div class="modal modal-wide">
+                    <div class="modal-header">
+                        <h2 id="detail-title">Kayıt Detayı</h2>
+                        <button class="modal-close" id="modal-detail-close">&times;</button>
+                    </div>
+                    <div class="modal-body" id="detail-body"></div>
+                    <div class="modal-footer">
+                        <button class="btn btn-danger" id="detail-delete">Sil</button>
+                        <button class="btn btn-secondary" id="detail-close-btn">Kapat</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== ANALYSIS PAGE ========== -->
+        <section id="page-analysis" class="page">
+            <div class="page-header">
+                <h1>Analiz</h1>
+                <p class="page-subtitle">Gelişimini grafiklerle takip et</p>
+            </div>
+
+            <div class="analysis-filters">
+                <div class="filter-group">
+                    <label>Ders:</label>
+                    <select id="analysis-subject">
+                        <option value="">Tümü</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Dönem:</label>
+                    <select id="analysis-period">
+                        <option value="7">Son 7 gün</option>
+                        <option value="30" selected>Son 30 gün</option>
+                        <option value="90">Son 90 gün</option>
+                        <option value="all">Tüm Zamanlar</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="analysis-grid">
+                <div class="stat-card" id="stat-total-sessions">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    </div>
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">Toplam Deneme</div>
+                </div>
+                <div class="stat-card" id="stat-total-time">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                    <div class="stat-value">0s</div>
+                    <div class="stat-label">Toplam Süre</div>
+                </div>
+                <div class="stat-card" id="stat-avg-net">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    </div>
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">Ort. Net</div>
+                </div>
+                <div class="stat-card" id="stat-best-net">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    </div>
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">En İyi Net</div>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3>Net Gelişimi</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-net-progress"></canvas>
+                    </div>
+                    <div class="no-data-overlay hidden" id="no-data-net">Veri yok</div>
+                </div>
+                <div class="chart-card">
+                    <h3>Derse Göre Dağılım</h3>
+                    <div class="chart-container chart-container-small">
+                        <canvas id="chart-subject-dist"></canvas>
+                    </div>
+                    <div class="no-data-overlay hidden" id="no-data-dist">Veri yok</div>
+                </div>
+                <div class="chart-card">
+                    <h3>Doğru / Yanlış / Boş Dağılımı</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-score-breakdown"></canvas>
+                    </div>
+                    <div class="no-data-overlay hidden" id="no-data-score">Veri yok</div>
+                </div>
+                <div class="chart-card">
+                    <h3>Süre Gelişimi</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-duration-progress"></canvas>
+                    </div>
+                    <div class="no-data-overlay hidden" id="no-data-duration">Veri yok</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== TOPICS PAGE ========== -->
+        <section id="page-topics" class="page">
+            <div class="page-header">
+                <h1>Konu Takip</h1>
+                <p class="page-subtitle">Yanlış ve boş bıraktığın konuları analiz et</p>
+            </div>
+
+            <div class="topics-filters">
+                <div class="filter-group">
+                    <label>Ders:</label>
+                    <select id="topics-subject-filter">
+                        <option value="">Tümü</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Sırala:</label>
+                    <select id="topics-sort">
+                        <option value="count-desc">En Çok Hata</option>
+                        <option value="count-asc">En Az Hata</option>
+                        <option value="name-asc">A-Z</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="topics-summary" id="topics-summary"></div>
+
+            <div class="topics-grid" id="topics-grid">
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                    <p>Henüz konu kaydı yok</p>
+                    <span>Kayıt oluştururken yanlış konuları ekleyin</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast Notification -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/timer.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/history.js"></script>
+    <script src="js/analysis.js"></script>
+    <script src="js/topics.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

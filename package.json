@@ -1,0 +1,19 @@
+{
+  "name": "cronosmetros",
+  "version": "1.0.0",
+  "description": "Akıllı Sınav Kronometresi - Deneme sürelerini takip et, gelişimini analiz et",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "pg": "^8.13.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "helmet": "^8.0.0",
+    "express-rate-limit": "^7.4.1",
+    "cors": "^2.8.5"
+  }
+}
