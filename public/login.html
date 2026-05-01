@@ -68,13 +68,13 @@
             </div>
 
             <div class="login-tabs">
-                <button class="login-tab active" id="tab-login" onclick="switchTab('login')">Giriş Yap</button>
-                <button class="login-tab" id="tab-register" onclick="switchTab('register')">Hesap Oluştur</button>
+                <button class="login-tab active" id="tab-login">Giriş Yap</button>
+                <button class="login-tab" id="tab-register">Hesap Oluştur</button>
             </div>
 
             <div class="login-error" id="login-error"></div>
 
-            <form class="login-form" id="auth-form" onsubmit="handleAuth(event)">
+            <form class="login-form" id="auth-form">
                 <div class="form-group">
                     <label for="username">Kullanıcı Adı</label>
                     <input type="text" id="username" placeholder="örn: burak_2026" required minlength="3" maxlength="30" autocomplete="username">
@@ -96,10 +96,18 @@
             window.location.href = '/';
         }
 
+        const tabLoginBtn = document.getElementById('tab-login');
+        const tabRegisterBtn = document.getElementById('tab-register');
+        const authForm = document.getElementById('auth-form');
+
+        tabLoginBtn.addEventListener('click', () => switchTab('login'));
+        tabRegisterBtn.addEventListener('click', () => switchTab('register'));
+        authForm.addEventListener('submit', handleAuth);
+
         function switchTab(tab) {
             currentTab = tab;
-            document.getElementById('tab-login').classList.toggle('active', tab === 'login');
-            document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+            tabLoginBtn.classList.toggle('active', tab === 'login');
+            tabRegisterBtn.classList.toggle('active', tab === 'register');
             document.getElementById('auth-btn').textContent = tab === 'login' ? 'Giriş Yap' : 'Hesap Oluştur';
             document.getElementById('login-error').classList.remove('visible');
         }
