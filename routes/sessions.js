@@ -67,6 +67,7 @@ router.post('/', async (req, res) => {
         if (!name) return res.status(400).json({ error: 'Kayıt adı gerekli.' });
         const type = sessionType || 'study';
         if (type !== 'exam_general' && !subject) return res.status(400).json({ error: 'Ders seçimi gerekli.' });
+        if (!req.user || !req.user.id) return res.status(401).json({ error: 'Oturum geçersiz, lütfen tekrar giriş yapın.' });
 
         const id = generateId();
         const d = date || new Date().toISOString().slice(0, 10);
@@ -123,8 +124,8 @@ router.post('/', async (req, res) => {
 
         res.status(201).json({ message: 'Kayıt oluşturuldu!', id });
     } catch (err) {
-        console.error('Session oluşturma hatası:', err);
-        res.status(500).json({ error: 'Kayıt oluşturulamadı.' });
+        console.error('Session oluşturma hatası:', err.message);
+        res.status(500).json({ error: 'Kayıt oluşturulamadı: ' + err.message });
     }
 });
 
