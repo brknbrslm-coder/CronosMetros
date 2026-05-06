@@ -270,77 +270,6 @@
                         <div class="form-group">
                             <textarea id="session-notes" rows="3" placeholder="Bu denemeyle ilgili notlarınız..."></textarea>
                         </div>
-                        <div class="form-group">
-                            <label for="session-name">Kayıt Adı *</label>
-                            <input type="text" id="session-name" placeholder="örn: TYT Deneme 15" required>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="session-subject">Ders / Kategori *</label>
-                                <div class="combo-input">
-                                    <input type="text" id="session-subject" placeholder="örn: Matematik" list="subject-list" required>
-                                    <datalist id="subject-list"></datalist>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="session-date">Tarih</label>
-                                <input type="date" id="session-date">
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Süre</label>
-                            <div class="saved-duration" id="saved-duration">00:00:00</div>
-                        </div>
-
-                        <div class="form-divider">
-                            <span>Skor Bilgileri (Opsiyonel)</span>
-                        </div>
-
-                        <div class="form-row triple">
-                            <div class="form-group">
-                                <label for="session-total">Toplam Soru</label>
-                                <input type="number" id="session-total" min="0" placeholder="40">
-                            </div>
-                            <div class="form-group">
-                                <label for="session-correct">Doğru</label>
-                                <input type="number" id="session-correct" min="0" placeholder="0" class="input-correct">
-                            </div>
-                            <div class="form-group">
-                                <label for="session-wrong">Yanlış</label>
-                                <input type="number" id="session-wrong" min="0" placeholder="0" class="input-wrong">
-                            </div>
-                        </div>
-
-                        <div class="form-row double">
-                            <div class="form-group">
-                                <label>Boş</label>
-                                <div class="computed-value" id="session-blank">0</div>
-                            </div>
-                            <div class="form-group">
-                                <label>Net</label>
-                                <div class="computed-value highlight" id="session-net">0.00</div>
-                            </div>
-                        </div>
-
-                        <div class="form-divider">
-                            <span>Yanlış Konular (Opsiyonel)</span>
-                        </div>
-                        <div class="form-group">
-                            <label for="wrong-topic-input">Konu Ekle</label>
-                            <div class="tag-input-wrapper">
-                                <input type="text" id="wrong-topic-input" placeholder="Konu adı yazıp Enter'a basın" list="topic-suggestions">
-                                <datalist id="topic-suggestions"></datalist>
-                            </div>
-                            <div class="tag-list" id="wrong-topics-list"></div>
-                        </div>
-
-                        <div class="form-divider">
-                            <span>Notlar (Opsiyonel)</span>
-                        </div>
-                        <div class="form-group">
-                            <textarea id="session-notes" rows="3" placeholder="Bu denemeyle ilgili notlarınız..."></textarea>
-                        </div>
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-secondary" id="modal-save-cancel">İptal</button>
@@ -349,6 +278,7 @@
                 </div>
             </div>
         </section>
+
 
         <!-- ========== HISTORY PAGE ========== -->
         <section id="page-history" class="page">
