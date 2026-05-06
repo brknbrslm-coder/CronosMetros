@@ -8,6 +8,8 @@ const { initDB } = require('./db/database');
 
 const authRoutes = require('./routes/auth');
 const sessionRoutes = require('./routes/sessions');
+const templateRoutes = require('./routes/templates');
+const settingsRoutes = require('./routes/settings');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -51,6 +53,8 @@ async function start() {
     // ===== ROTALAR =====
     app.use('/api/auth', authLimiter, authRoutes);
     app.use('/api/sessions', apiLimiter, sessionRoutes);
+    app.use('/api/templates', apiLimiter, templateRoutes);
+    app.use('/api/settings', apiLimiter, settingsRoutes);
 
     // ===== STATİK DOSYALAR =====
     app.use(express.static(path.join(__dirname, 'public')));

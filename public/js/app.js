@@ -1,18 +1,13 @@
 // ===== MAIN APP =====
-document.addEventListener('DOMContentLoaded', () => {
-    // Auth kontrolü
-    if (!isLoggedIn()) {
-        window.location.href = '/login.html';
-        return;
-    }
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!isLoggedIn()) { window.location.href = '/login.html'; return; }
 
     const user = getUser();
-
-    // Kullanıcı adını sidebar'da göster
     const userEl = document.getElementById('sidebar-user');
-    if (userEl && user) {
-        userEl.textContent = user.username;
-    }
+    if (userEl && user) userEl.textContent = user.username;
+
+    // Net katsayısını yükle
+    await getNetCoefficient();
 
     // Navigation
     const navBtns = document.querySelectorAll('.nav-btn[data-page]');
@@ -25,76 +20,256 @@ document.addEventListener('DOMContentLoaded', () => {
         const btn = document.querySelector(`.nav-btn[data-page="${pageId}"]`);
         if (page) page.classList.add('active');
         if (btn) btn.classList.add('active');
-
         if (pageId === 'history') renderHistory();
         if (pageId === 'analysis') renderAnalysis();
         if (pageId === 'topics') renderTopics();
-
+        if (pageId === 'settings') renderSettingsPage();
         document.getElementById('sidebar').classList.remove('open');
     }
 
-    navBtns.forEach(btn => {
-        btn.addEventListener('click', () => navigateTo(btn.dataset.page));
-    });
+    navBtns.forEach(btn => btn.addEventListener('click', () => navigateTo(btn.dataset.page)));
 
-    // Mobile menu
-    document.getElementById('mobile-menu-btn').addEventListener('click', () => {
-        document.getElementById('sidebar').classList.toggle('open');
-    });
+    const mobileBtn = document.getElementById('mobile-menu-btn');
+    if (mobileBtn) mobileBtn.addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
 
     document.addEventListener('click', (e) => {
         const sidebar = document.getElementById('sidebar');
         const menuBtn = document.getElementById('mobile-menu-btn');
-        if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && !menuBtn.contains(e.target)) {
+        if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && menuBtn && !menuBtn.contains(e.target)) {
             sidebar.classList.remove('open');
         }
     });
 
     // Timer controls
-    document.getElementById('btn-start').addEventListener('click', startTimer);
-    document.getElementById('btn-pause').addEventListener('click', pauseTimer);
-    document.getElementById('btn-resume').addEventListener('click', resumeTimer);
-    document.getElementById('btn-stop').addEventListener('click', stopTimer);
-    document.getElementById('btn-reset').addEventListener('click', resetTimer);
+    document.getElementById('btn-start')?.addEventListener('click', startTimer);
+    document.getElementById('btn-pause')?.addEventListener('click', pauseTimer);
+    document.getElementById('btn-resume')?.addEventListener('click', resumeTimer);
+    document.getElementById('btn-stop')?.addEventListener('click', stopTimer);
+    document.getElementById('btn-reset')?.addEventListener('click', resetTimer);
 
-    // Save button -> open modal
-    document.getElementById('btn-save-time').addEventListener('click', async () => {
-        document.getElementById('saved-duration').textContent = formatDuration(timerState.elapsed);
-        document.getElementById('session-date').value = new Date().toISOString().slice(0, 10);
-        document.getElementById('session-name').value = '';
-        document.getElementById('session-subject').value = '';
-        document.getElementById('session-total').value = '';
-        document.getElementById('session-correct').value = '';
-        document.getElementById('session-wrong').value = '';
-        document.getElementById('session-blank').textContent = '0';
-        document.getElementById('session-net').textContent = '0.00';
-        document.getElementById('session-notes').value = '';
-        document.getElementById('wrong-topics-list').innerHTML = '';
-        currentWrongTopics = [];
-        await populateSubjectFilters();
-        await populateTopicSuggestions();
+    // ===== KAYIT MODAL =====
+    let currentWrongTopics = [];
+    let currentExamSubjects = [];
+    let editingSessionId = null;
+
+    // Modal açma yardımcısı
+    async function openSaveModal(prefillDuration, sessionToEdit = null) {
+        editingSessionId = sessionToEdit ? sessionToEdit.id : null;
+        currentWrongTopics = sessionToEdit ? [...(sessionToEdit.wrongTopics || [])] : [];
+        currentExamSubjects = sessionToEdit ? [...(sessionToEdit.examSubjects || [])] : [];
+
+        // Tarih
+        const dateEl = document.getElementById('session-date');
+        if (dateEl) dateEl.value = sessionToEdit ? sessionToEdit.date : new Date().toISOString().slice(0, 10);
+
+        // Kayıt adı
+        const nameEl = document.getElementById('session-name');
+        if (nameEl) nameEl.value = sessionToEdit ? sessionToEdit.name : '';
+
+        // Notlar
+        const notesEl = document.getElementById('session-notes');
+        if (notesEl) notesEl.value = sessionToEdit ? (sessionToEdit.notes || '') : '';
+
+        // Süre
+        fillDurationInputs(sessionToEdit ? sessionToEdit.duration : (prefillDuration || 0));
+
+        // Session type
+        const typeEl = document.getElementById('session-type');
+        if (typeEl) typeEl.value = sessionToEdit ? (sessionToEdit.sessionType || 'study') : 'study';
+
+        // Şablonları yükle
+        await loadTemplatesIntoSelect();
+
+        // Tipi ayarla ve formu güncelle
+        handleSessionTypeChange();
+
+        // Eğer düzenleme ise mevcut verileri doldur
+        if (sessionToEdit) {
+            const subjectEl = document.getElementById('session-subject');
+            if (subjectEl && sessionToEdit.subject) subjectEl.value = sessionToEdit.subject;
+
+            if (sessionToEdit.sessionType !== 'exam_general') {
+                const totalEl = document.getElementById('session-total');
+                const correctEl = document.getElementById('session-correct');
+                const wrongEl = document.getElementById('session-wrong');
+                if (totalEl) totalEl.value = sessionToEdit.total || '';
+                if (correctEl) correctEl.value = sessionToEdit.correct || '';
+                if (wrongEl) wrongEl.value = sessionToEdit.wrong || '';
+                recalcScores();
+            } else {
+                renderExamSubjectsTable();
+            }
+        }
+
+        renderWrongTopicTags();
         document.getElementById('modal-save').classList.remove('hidden');
-    });
-
-    // Auto-calculate blank and net
-    function recalcScores() {
-        const total = parseInt(document.getElementById('session-total').value) || 0;
-        const correct = parseInt(document.getElementById('session-correct').value) || 0;
-        const wrong = parseInt(document.getElementById('session-wrong').value) || 0;
-        const blank = Math.max(0, total - correct - wrong);
-        const net = correct - (wrong * 0.25);
-        document.getElementById('session-blank').textContent = blank;
-        document.getElementById('session-net').textContent = net.toFixed(2);
     }
 
-    document.getElementById('session-total').addEventListener('input', recalcScores);
-    document.getElementById('session-correct').addEventListener('input', recalcScores);
-    document.getElementById('session-wrong').addEventListener('input', recalcScores);
+    // Kayıt butonu (zamanlayıcıdan)
+    document.getElementById('btn-save-time')?.addEventListener('click', () => openSaveModal(timerState.elapsed));
 
-    // Wrong topics tag input
-    let currentWrongTopics = [];
+    // Hızlı kayıt (zamanlayıcısız)
+    document.getElementById('btn-quick-save')?.addEventListener('click', () => openSaveModal(0));
 
-    document.getElementById('wrong-topic-input').addEventListener('keydown', (e) => {
+    // Session type değişince form güncelle
+    document.getElementById('session-type')?.addEventListener('change', handleSessionTypeChange);
+
+    function handleSessionTypeChange() {
+        const type = document.getElementById('session-type')?.value || 'study';
+        const singleSubjectSection = document.getElementById('single-subject-section');
+        const examSection = document.getElementById('exam-section');
+        const scoreSection = document.getElementById('score-section');
+        const wrongTopicsSection = document.getElementById('wrong-topics-section');
+
+        if (type === 'exam_general') {
+            singleSubjectSection?.classList.add('hidden');
+            examSection?.classList.remove('hidden');
+            scoreSection?.classList.add('hidden');
+            wrongTopicsSection?.classList.add('hidden');
+            if (currentExamSubjects.length === 0) renderExamSubjectsTable();
+        } else {
+            singleSubjectSection?.classList.remove('hidden');
+            examSection?.classList.add('hidden');
+            scoreSection?.classList.remove('hidden');
+            wrongTopicsSection?.classList.remove('hidden');
+            populateSubjectInput();
+        }
+    }
+
+    // Ders autocomplete
+    async function populateSubjectInput() {
+        const subjects = await loadSubjects();
+        const datalist = document.getElementById('subject-datalist');
+        if (datalist) {
+            datalist.innerHTML = subjects.map(s => `<option value="${s.name}">`).join('');
+        }
+        // Konu önerilerini güncelle
+        const subjectEl = document.getElementById('session-subject');
+        if (subjectEl) {
+            subjectEl.addEventListener('change', updateTopicSuggestions);
+            subjectEl.addEventListener('input', updateTopicSuggestions);
+        }
+    }
+
+    function updateTopicSuggestions() {
+        const subject = document.getElementById('session-subject')?.value || '';
+        const suggestions = getTopicSuggestions(subject);
+        const datalist = document.getElementById('topic-datalist');
+        if (datalist) {
+            datalist.innerHTML = suggestions.map(t => `<option value="${t}">`).join('');
+        }
+    }
+
+    // Şablon seçimini yükle
+    async function loadTemplatesIntoSelect() {
+        const templates = await loadTemplates();
+        const sel = document.getElementById('template-select');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">-- Şablon Seç veya Manuel --</option>';
+        templates.forEach(t => {
+            if (t.sessionType === 'exam_general') {
+                sel.innerHTML += `<option value="${t.id}" data-builtin="${t.isBuiltin}">${t.isBuiltin ? '⭐ ' : ''}${t.name}</option>`;
+            }
+        });
+        sel._templates = templates;
+    }
+
+    // Şablon seçilince satırları doldur
+    document.getElementById('template-select')?.addEventListener('change', async function() {
+        const sel = this;
+        const tid = sel.value;
+        if (!tid) return;
+        const templates = sel._templates || await loadTemplates();
+        const tmpl = templates.find(t => t.id === tid);
+        if (!tmpl) return;
+        currentExamSubjects = tmpl.subjects.map(s => ({
+            subject: s.name, category: s.category || '',
+            total: s.defaultTotal || '', correct: '', wrong: '', blank: '', net: ''
+        }));
+        renderExamSubjectsTable();
+    });
+
+    // Ders satırı ekle butonu
+    document.getElementById('btn-add-exam-row')?.addEventListener('click', () => {
+        currentExamSubjects.push({ subject: '', category: '', total: '', correct: '', wrong: '', blank: '', net: '' });
+        renderExamSubjectsTable();
+    });
+
+    // Net hesaplama
+    function recalcScores() {
+        const total = parseInt(document.getElementById('session-total')?.value) || 0;
+        const correct = parseInt(document.getElementById('session-correct')?.value) || 0;
+        const wrong = parseInt(document.getElementById('session-wrong')?.value) || 0;
+        const blank = Math.max(0, total - correct - wrong);
+        const net = calcNet(correct, wrong);
+        const blankEl = document.getElementById('session-blank');
+        const netEl = document.getElementById('session-net');
+        if (blankEl) blankEl.textContent = blank;
+        if (netEl) netEl.textContent = net.toFixed(2);
+    }
+
+    document.getElementById('session-total')?.addEventListener('input', recalcScores);
+    document.getElementById('session-correct')?.addEventListener('input', recalcScores);
+    document.getElementById('session-wrong')?.addEventListener('input', recalcScores);
+
+    // Exam subjects tablosu
+    function renderExamSubjectsTable() {
+        const tbody = document.getElementById('exam-subjects-tbody');
+        if (!tbody) return;
+        const subjects = typeof YKS_CURRICULUM !== 'undefined'
+            ? [...YKS_CURRICULUM.tytSubjects, ...YKS_CURRICULUM.aytSubjects]
+            : [];
+        const datalistOpts = subjects.map(s => `<option value="${s}">`).join('');
+
+        tbody.innerHTML = currentExamSubjects.map((row, i) => {
+            const net = (parseFloat(row.correct) || 0) - ((parseFloat(row.wrong) || 0) * (_netCoefficient || 0.25));
+            return `<tr data-idx="${i}">
+                <td><input type="text" class="exam-subject-input" list="exam-subject-datalist-${i}" value="${row.subject}" placeholder="Ders" data-field="subject" data-idx="${i}">
+                <datalist id="exam-subject-datalist-${i}">${datalistOpts}</datalist></td>
+                <td><input type="number" class="exam-num-input" value="${row.total}" min="0" placeholder="-" data-field="total" data-idx="${i}"></td>
+                <td><input type="number" class="exam-num-input" value="${row.correct}" min="0" placeholder="0" data-field="correct" data-idx="${i}"></td>
+                <td><input type="number" class="exam-num-input" value="${row.wrong}" min="0" placeholder="0" data-field="wrong" data-idx="${i}"></td>
+                <td class="exam-blank">${row.total ? Math.max(0, (parseInt(row.total)||0)-(parseInt(row.correct)||0)-(parseInt(row.wrong)||0)) : '-'}</td>
+                <td class="exam-net ${net > 0 ? 'positive' : net < 0 ? 'negative' : ''}">${(parseInt(row.correct) || parseInt(row.wrong)) ? net.toFixed(2) : '-'}</td>
+                <td><button class="btn-remove-exam-row" data-idx="${i}" title="Sil">×</button></td>
+            </tr>`;
+        }).join('');
+
+        // Event delegation
+        tbody.querySelectorAll('input').forEach(inp => {
+            inp.addEventListener('input', function() {
+                const idx = parseInt(this.dataset.idx);
+                const field = this.dataset.field;
+                currentExamSubjects[idx][field] = this.value;
+                if (field === 'correct' || field === 'wrong' || field === 'total') {
+                    // Satırı güncelle
+                    const row = currentExamSubjects[idx];
+                    const net = (parseFloat(row.correct) || 0) - ((parseFloat(row.wrong) || 0) * (_netCoefficient || 0.25));
+                    const tr = tbody.querySelector(`tr[data-idx="${idx}"]`);
+                    if (tr) {
+                        const blankTd = tr.querySelector('.exam-blank');
+                        const netTd = tr.querySelector('.exam-net');
+                        if (blankTd && row.total) blankTd.textContent = Math.max(0, (parseInt(row.total)||0)-(parseInt(row.correct)||0)-(parseInt(row.wrong)||0));
+                        if (netTd) { netTd.textContent = (parseInt(row.correct)||parseInt(row.wrong)) ? net.toFixed(2) : '-'; }
+                    }
+                }
+                if (field === 'subject') {
+                    // Kategoriyi otomatik belirle
+                    currentExamSubjects[idx].category = getSubjectCategory ? (getSubjectCategory(this.value) || '') : '';
+                }
+            });
+        });
+
+        tbody.querySelectorAll('.btn-remove-exam-row').forEach(btn => {
+            btn.addEventListener('click', function() {
+                currentExamSubjects.splice(parseInt(this.dataset.idx), 1);
+                renderExamSubjectsTable();
+            });
+        });
+    }
+
+    // Yanlış konu tag
+    document.getElementById('wrong-topic-input')?.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
             const val = e.target.value.trim();
@@ -108,8 +283,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderWrongTopicTags() {
         const container = document.getElementById('wrong-topics-list');
+        if (!container) return;
         container.innerHTML = currentWrongTopics.map((t, i) =>
-            `<span class="tag">${t}<button class="tag-remove" data-idx="${i}">&times;</button></span>`
+            `<span class="tag">${t}<button class="tag-remove" data-idx="${i}">×</button></span>`
         ).join('');
         container.querySelectorAll('.tag-remove').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -119,85 +295,110 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Save modal close/cancel
-    document.getElementById('modal-save-close').addEventListener('click', () => {
-        document.getElementById('modal-save').classList.add('hidden');
-    });
-    document.getElementById('modal-save-cancel').addEventListener('click', () => {
-        document.getElementById('modal-save').classList.add('hidden');
-    });
+    // Modal kapat
+    document.getElementById('modal-save-close')?.addEventListener('click', () => document.getElementById('modal-save').classList.add('hidden'));
+    document.getElementById('modal-save-cancel')?.addEventListener('click', () => document.getElementById('modal-save').classList.add('hidden'));
 
-    // Save confirm
-    document.getElementById('modal-save-confirm').addEventListener('click', async () => {
-        const name = document.getElementById('session-name').value.trim();
-        const subject = document.getElementById('session-subject').value.trim();
+    // Kaydet / Güncelle
+    document.getElementById('modal-save-confirm')?.addEventListener('click', async () => {
+        const name = document.getElementById('session-name')?.value.trim();
         if (!name) { showToast('Kayıt adı gerekli!', 'error'); return; }
-        if (!subject) { showToast('Ders seçimi gerekli!', 'error'); return; }
 
-        const total = parseInt(document.getElementById('session-total').value) || undefined;
-        const correct = parseInt(document.getElementById('session-correct').value) || 0;
-        const wrong = parseInt(document.getElementById('session-wrong').value) || 0;
-        const blank = total !== undefined ? Math.max(0, total - correct - wrong) : undefined;
-        const net = total !== undefined ? correct - (wrong * 0.25) : undefined;
+        const type = document.getElementById('session-type')?.value || 'study';
+        const subject = document.getElementById('session-subject')?.value.trim();
+        if (type !== 'exam_general' && !subject) { showToast('Ders seçimi gerekli!', 'error'); return; }
 
-        const session = {
-            name, subject,
-            date: document.getElementById('session-date').value || new Date().toISOString().slice(0, 10),
-            duration: timerState.elapsed,
-            total, correct, wrong, blank, net,
-            wrongTopics: [...currentWrongTopics],
-            notes: document.getElementById('session-notes').value.trim()
-        };
+        const duration = getDurationFromInputs();
+        const date = document.getElementById('session-date')?.value || new Date().toISOString().slice(0, 10);
+        const notes = document.getElementById('session-notes')?.value.trim();
 
-        const result = await addSession(session);
+        let sessionData;
+
+        if (type === 'exam_general') {
+            const filled = currentExamSubjects.filter(r => r.subject.trim());
+            if (filled.length === 0) { showToast('En az bir ders satırı gerekli!', 'error'); return; }
+            const enriched = filled.map(r => ({
+                ...r,
+                blank: r.total ? Math.max(0, (parseInt(r.total)||0)-(parseInt(r.correct)||0)-(parseInt(r.wrong)||0)) : null,
+                net: calcNet(parseInt(r.correct)||0, parseInt(r.wrong)||0),
+            }));
+            const templateId = document.getElementById('template-select')?.value || null;
+            sessionData = { name, sessionType: type, templateId, date, duration, notes, examSubjects: enriched, netCoefficient: _netCoefficient };
+        } else {
+            const total = parseInt(document.getElementById('session-total')?.value) || undefined;
+            const correct = parseInt(document.getElementById('session-correct')?.value) || 0;
+            const wrong = parseInt(document.getElementById('session-wrong')?.value) || 0;
+            const blank = total !== undefined ? Math.max(0, total - correct - wrong) : undefined;
+            const net = (total !== undefined || correct || wrong) ? calcNet(correct, wrong) : undefined;
+            sessionData = { name, subject, sessionType: type, date, duration, total, correct, wrong, blank, net, notes, wrongTopics: [...currentWrongTopics], netCoefficient: _netCoefficient };
+        }
+
+        let result;
+        if (editingSessionId) {
+            result = await updateSession(editingSessionId, sessionData);
+        } else {
+            result = await addSession(sessionData);
+        }
+
         if (result) {
             document.getElementById('modal-save').classList.add('hidden');
-            resetTimer();
+            if (!editingSessionId) resetTimer();
             invalidateSubjectCache();
             await populateSubjectFilters();
-            showToast('Kayıt başarıyla oluşturuldu!', 'success');
+            const msg = editingSessionId ? 'Kayıt güncellendi!' : 'Kayıt oluşturuldu!';
+            showToast(msg, 'success');
+            editingSessionId = null;
+            if (document.getElementById('page-history')?.classList.contains('active')) renderHistory();
         }
     });
 
-    // Detail modal close
-    document.getElementById('modal-detail-close').addEventListener('click', () => {
-        document.getElementById('modal-detail').classList.add('hidden');
-    });
-    document.getElementById('detail-close-btn').addEventListener('click', () => {
-        document.getElementById('modal-detail').classList.add('hidden');
-    });
+    // ===== DETAY MODAL =====
+    document.getElementById('modal-detail-close')?.addEventListener('click', () => document.getElementById('modal-detail').classList.add('hidden'));
+    document.getElementById('detail-close-btn')?.addEventListener('click', () => document.getElementById('modal-detail').classList.add('hidden'));
 
-    // Close modals on overlay click
+    // Overlay tıklamayla kapat
     document.querySelectorAll('.modal-overlay').forEach(overlay => {
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) overlay.classList.add('hidden');
         });
     });
 
-    // Filters
-    document.getElementById('filter-subject').addEventListener('change', renderHistory);
-    document.getElementById('filter-sort').addEventListener('change', renderHistory);
-    document.getElementById('filter-search').addEventListener('input', renderHistory);
-    document.getElementById('analysis-subject').addEventListener('change', renderAnalysis);
-    document.getElementById('analysis-period').addEventListener('change', renderAnalysis);
-    document.getElementById('topics-subject-filter').addEventListener('change', renderTopics);
-    document.getElementById('topics-sort').addEventListener('change', renderTopics);
+    // Detay modalında "Düzenle" butonu
+    document.getElementById('detail-edit-btn')?.addEventListener('click', async () => {
+        const sessionId = document.getElementById('detail-edit-btn').dataset.sessionId;
+        if (!sessionId) return;
+        const sessions = await loadSessions();
+        const s = sessions.find(x => x.id === sessionId);
+        if (!s) return;
+        document.getElementById('modal-detail').classList.add('hidden');
+        await openSaveModal(s.duration, s);
+    });
 
-    // Export
-    document.getElementById('btn-export-data').addEventListener('click', async () => {
+    // ===== FİLTRELER =====
+    document.getElementById('filter-subject')?.addEventListener('change', renderHistory);
+    document.getElementById('filter-sort')?.addEventListener('change', renderHistory);
+    document.getElementById('filter-search')?.addEventListener('input', renderHistory);
+    document.getElementById('analysis-subject')?.addEventListener('change', renderAnalysis);
+    document.getElementById('analysis-period')?.addEventListener('change', renderAnalysis);
+    document.getElementById('topics-subject-filter')?.addEventListener('change', renderTopics);
+    document.getElementById('topics-sort')?.addEventListener('change', renderTopics);
+    document.getElementById('topics-filter-state')?.addEventListener('change', renderTopics);
+
+    // ===== EXPORT =====
+    document.getElementById('btn-export-data')?.addEventListener('click', async () => {
         await exportData();
         showToast('Veriler dışa aktarıldı', 'success');
     });
 
-    // Logout
-    document.getElementById('btn-logout').addEventListener('click', () => {
-        if (confirm('Çıkış yapmak istediğinize emin misiniz?')) {
-            logout();
-        }
+    // ===== LOGOUT =====
+    document.getElementById('btn-logout')?.addEventListener('click', () => {
+        if (confirm('Çıkış yapmak istediğinize emin misiniz?')) logout();
     });
 
-    // Init
-    populateSubjectFilters();
+    // ===== INIT =====
+    await populateSubjectFilters();
     updateDisplay();
+    updateTimerButtons('idle');
+    initSettingsListeners();
     showToast(`Hoş geldin, ${user ? user.username : ''}! 👋`, 'info');
 });

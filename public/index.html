@@ -65,6 +65,13 @@
                 </svg>
                 <span>Konu Takip</span>
             </button>
+            <button class="nav-btn" data-page="settings" id="nav-settings">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+                <span>Ayarlar</span>
+            </button>
         </div>
 
         <div class="sidebar-footer">
@@ -156,6 +163,10 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                         <span>Kaydet</span>
                     </button>
+                    <button class="timer-btn btn-quick-save" id="btn-quick-save">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                        <span>Hızlı Kayıt</span>
+                    </button>
                 </div>
 
                 <!-- Lap Times -->
@@ -167,12 +178,98 @@
 
             <!-- Save Session Modal -->
             <div class="modal-overlay hidden" id="modal-save">
-                <div class="modal">
+                <div class="modal modal-wide">
                     <div class="modal-header">
-                        <h2>Kayıt Detayları</h2>
+                        <h2 id="modal-save-title">Kayıt Detayları</h2>
                         <button class="modal-close" id="modal-save-close">&times;</button>
                     </div>
                     <div class="modal-body">
+                        <!-- Temel Bilgiler -->
+                        <div class="form-row">
+                            <div class="form-group" style="flex:2">
+                                <label for="session-name">Kayıt Adı *</label>
+                                <input type="text" id="session-name" placeholder="örn: TYT Denemesi #15" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="session-date">Tarih</label>
+                                <input type="date" id="session-date">
+                            </div>
+                        </div>
+
+                        <!-- Kayıt Türü -->
+                        <div class="form-group">
+                            <label for="session-type">Kayıt Türü</label>
+                            <select id="session-type">
+                                <option value="study">📚 Çalışma Oturumu</option>
+                                <option value="exam_branch">🎯 Branş Denemesi</option>
+                                <option value="exam_general">📝 Genel Deneme</option>
+                            </select>
+                        </div>
+
+                        <!-- Süre (her zaman göster) -->
+                        <div class="form-group">
+                            <label>Süre</label>
+                            <div class="duration-inputs">
+                                <div class="duration-field"><input type="number" id="duration-h" min="0" max="23" placeholder="0"><span>saat</span></div>
+                                <div class="duration-sep">:</div>
+                                <div class="duration-field"><input type="number" id="duration-m" min="0" max="59" placeholder="0"><span>dk</span></div>
+                                <div class="duration-sep">:</div>
+                                <div class="duration-field"><input type="number" id="duration-s" min="0" max="59" placeholder="0"><span>sn</span></div>
+                            </div>
+                        </div>
+
+                        <!-- TEK DERS bölümü (study / exam_branch) -->
+                        <div id="single-subject-section">
+                            <div class="form-group">
+                                <label for="session-subject">Ders *</label>
+                                <input type="text" id="session-subject" placeholder="örn: TYT Matematik" list="subject-datalist" autocomplete="off">
+                                <datalist id="subject-datalist"></datalist>
+                                <datalist id="topic-datalist"></datalist>
+                            </div>
+                            <!-- Skor -->
+                            <div id="score-section">
+                                <div class="form-divider"><span>Skor (Opsiyonel)</span></div>
+                                <div class="form-row triple">
+                                    <div class="form-group"><label for="session-total">Toplam</label><input type="number" id="session-total" min="0" placeholder="40"></div>
+                                    <div class="form-group"><label for="session-correct">Doğru</label><input type="number" id="session-correct" min="0" placeholder="0" class="input-correct"></div>
+                                    <div class="form-group"><label for="session-wrong">Yanlış</label><input type="number" id="session-wrong" min="0" placeholder="0" class="input-wrong"></div>
+                                </div>
+                                <div class="form-row double">
+                                    <div class="form-group"><label>Boş</label><div class="computed-value" id="session-blank">0</div></div>
+                                    <div class="form-group"><label>Net</label><div class="computed-value highlight" id="session-net">0.00</div></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- GENEL DENEME bölümü -->
+                        <div id="exam-section" class="hidden">
+                            <div class="form-group">
+                                <label for="template-select">Şablon</label>
+                                <select id="template-select"></select>
+                            </div>
+                            <div class="exam-subjects-table-wrapper">
+                                <table class="exam-subjects-table">
+                                    <thead><tr><th>Ders</th><th>Toplam</th><th>D</th><th>Y</th><th>B</th><th>Net</th><th></th></tr></thead>
+                                    <tbody id="exam-subjects-tbody"></tbody>
+                                </table>
+                            </div>
+                            <button class="btn btn-secondary btn-sm" id="btn-add-exam-row" style="margin-top:8px">+ Ders Ekle</button>
+                        </div>
+
+                        <!-- Yanlış Konular -->
+                        <div id="wrong-topics-section">
+                            <div class="form-divider"><span>Yanlış Konular (Opsiyonel)</span></div>
+                            <div class="form-group">
+                                <input type="text" id="wrong-topic-input" placeholder="Konu adı yaz, Enter'a bas" list="topic-datalist">
+                                <div class="tag-list" id="wrong-topics-list"></div>
+                            </div>
+                        </div>
+
+                        <!-- Notlar -->
+                        <div class="form-divider"><span>Notlar (Opsiyonel)</span></div>
+                        <div class="form-group">
+                            <textarea id="session-notes" rows="3" placeholder="Bu denemeyle ilgili notlarınız..."></textarea>
+                        </div>
                         <div class="form-group">
                             <label for="session-name">Kayıt Adı *</label>
                             <input type="text" id="session-name" placeholder="örn: TYT Deneme 15" required>
@@ -303,6 +400,7 @@
                     <div class="modal-body" id="detail-body"></div>
                     <div class="modal-footer">
                         <button class="btn btn-danger" id="detail-delete">Sil</button>
+                        <button class="btn btn-outline" id="detail-edit-btn">✏ Düzenle</button>
                         <button class="btn btn-secondary" id="detail-close-btn">Kapat</button>
                     </div>
                 </div>
@@ -407,8 +505,14 @@
             <div class="topics-filters">
                 <div class="filter-group">
                     <label>Ders:</label>
-                    <select id="topics-subject-filter">
-                        <option value="">Tümü</option>
+                    <select id="topics-subject-filter"><option value="">Tümü</option></select>
+                </div>
+                <div class="filter-group">
+                    <label>Durum:</label>
+                    <select id="topics-filter-state">
+                        <option value="all">Tümü</option>
+                        <option value="active">Aktif Sorunlar</option>
+                        <option value="resolved">Halledilenler</option>
                     </select>
                 </div>
                 <div class="filter-group">
@@ -431,19 +535,111 @@
                 </div>
             </div>
         </section>
+
+        <!-- ========== SETTINGS PAGE ========== -->
+        <section id="page-settings" class="page">
+            <div class="page-header">
+                <h1>Ayarlar</h1>
+                <p class="page-subtitle">Hesap, tercihler ve veri yönetimi</p>
+            </div>
+            <div class="settings-layout">
+                <!-- Genel Ayarlar -->
+                <div class="settings-card">
+                    <h3>⚙️ Genel Tercihler</h3>
+                    <div class="form-group">
+                        <label for="settings-coef-preset">Net Hesaplama Sistemi</label>
+                        <select id="settings-coef-preset">
+                            <option value="0.25">4'lük sistem (0.25)</option>
+                            <option value="0.333">3'lük sistem (0.333)</option>
+                            <option value="custom">Özel</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="settings-net-coef">Net Katsayısı (Yanlış × ?)</label>
+                        <input type="number" id="settings-net-coef" min="0.01" max="1" step="0.001" placeholder="0.25">
+                    </div>
+                    <div class="form-group">
+                        <label for="settings-daily-goal">Günlük Çalışma Hedefi (dakika)</label>
+                        <input type="number" id="settings-daily-goal" min="15" max="720" placeholder="120">
+                    </div>
+                    <button class="btn btn-primary" id="btn-save-general-settings">Kaydet</button>
+                </div>
+
+                <!-- Profil -->
+                <div class="settings-card">
+                    <h3>👤 Profil</h3>
+                    <div class="form-group">
+                        <label for="settings-new-username">Yeni Kullanıcı Adı</label>
+                        <input type="text" id="settings-new-username" placeholder="Yeni kullanıcı adı">
+                    </div>
+                    <button class="btn btn-secondary" id="btn-change-username" style="margin-bottom:16px">Kullanıcı Adını Değiştir</button>
+                    <div class="form-divider"><span>Şifre Değiştir</span></div>
+                    <div class="form-group">
+                        <label for="settings-current-pass">Mevcut Şifre</label>
+                        <input type="password" id="settings-current-pass" placeholder="••••••">
+                    </div>
+                    <div class="form-group">
+                        <label for="settings-new-pass">Yeni Şifre</label>
+                        <input type="password" id="settings-new-pass" placeholder="En az 6 karakter">
+                    </div>
+                    <div class="form-group">
+                        <label for="settings-confirm-pass">Yeni Şifre (Tekrar)</label>
+                        <input type="password" id="settings-confirm-pass" placeholder="••••••">
+                    </div>
+                    <button class="btn btn-secondary" id="btn-change-password">Şifreyi Değiştir</button>
+                </div>
+
+                <!-- Güvenlik Sorusu -->
+                <div class="settings-card">
+                    <h3>🔐 Güvenlik Sorusu</h3>
+                    <p class="settings-desc">Şifreni unutursan bu soru ile sıfırlayabilirsin.</p>
+                    <div class="form-group">
+                        <label for="settings-security-q">Güvenlik Sorusu</label>
+                        <select id="settings-security-q"><option value="">Seçin...</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="settings-security-a">Cevap</label>
+                        <input type="text" id="settings-security-a" placeholder="Cevabınız">
+                    </div>
+                    <button class="btn btn-secondary" id="btn-update-security-q">Güvenlik Sorusunu Güncelle</button>
+                </div>
+
+                <!-- Ders Yönetimi -->
+                <div class="settings-card">
+                    <h3>📚 Ders Yönetimi</h3>
+                    <div id="settings-subjects-list"><p class="settings-empty">Yükleniyor...</p></div>
+                </div>
+
+                <!-- Şablonlar -->
+                <div class="settings-card">
+                    <h3>📋 Şablonlar</h3>
+                    <div id="settings-templates-list"><p class="settings-empty">Yükleniyor...</p></div>
+                </div>
+
+                <!-- Veri Yönetimi -->
+                <div class="settings-card">
+                    <h3>💾 Veri Yönetimi</h3>
+                    <button class="btn btn-secondary" id="btn-export-settings">📥 Verileri Dışa Aktar (JSON)</button>
+                    <div style="margin-top:12px">
+                        <button class="btn btn-danger" id="btn-delete-all-data">🗑 Tüm Verileri Sil</button>
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- Toast Notification -->
     <div class="toast-container" id="toast-container"></div>
 
-    <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/timer.js"></script>
     <script src="js/ui.js"></script>
+    <script src="js/curriculum.js"></script>
     <script src="js/history.js"></script>
     <script src="js/analysis.js"></script>
     <script src="js/topics.js"></script>
+    <script src="js/settings-page.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

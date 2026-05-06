@@ -4,19 +4,17 @@ async function renderHistory() {
     const subjects = await loadSubjects();
     if (!sessions) sessions = [];
 
-    // Filter
-    const subjectFilter = document.getElementById('filter-subject').value;
-    if (subjectFilter) sessions = sessions.filter(s => s.subject === subjectFilter);
+    const subjectFilter = document.getElementById('filter-subject')?.value || '';
+    if (subjectFilter) sessions = sessions.filter(s => s.subject === subjectFilter || (s.examSubjects && s.examSubjects.some(es => es.subject === subjectFilter)));
 
-    const search = document.getElementById('filter-search').value.toLowerCase();
+    const search = (document.getElementById('filter-search')?.value || '').toLowerCase();
     if (search) sessions = sessions.filter(s =>
         s.name.toLowerCase().includes(search) ||
         (s.subject && s.subject.toLowerCase().includes(search)) ||
         (s.notes && s.notes.toLowerCase().includes(search))
     );
 
-    // Sort
-    const sort = document.getElementById('filter-sort').value;
+    const sort = document.getElementById('filter-sort')?.value || 'date-desc';
     sessions.sort((a, b) => {
         switch (sort) {
             case 'date-asc': return new Date(a.date) - new Date(b.date);
@@ -29,7 +27,6 @@ async function renderHistory() {
         }
     });
 
-    // Stats
     const statsEl = document.getElementById('history-stats');
     if (sessions.length > 0) {
         const totalTime = sessions.reduce((a, s) => a + (s.duration || 0), 0);
@@ -41,7 +38,6 @@ async function renderHistory() {
             <div class="history-stat"><div class="hs-value hs-green">${avgNet}</div><div class="hs-label">Ort. Net</div></div>`;
     } else { statsEl.innerHTML = ''; }
 
-    // List
     const listEl = document.getElementById('history-list');
     if (sessions.length === 0) {
         listEl.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p>Kayıt bulunamadı</p><span>Filtreleri değiştirmeyi deneyin</span></div>`;
@@ -49,22 +45,38 @@ async function renderHistory() {
     }
 
     listEl.innerHTML = sessions.map(s => {
-        const netClass = s.net > 0 ? 'positive' : s.net < 0 ? 'negative' : '';
-        const netText = s.net !== undefined && s.net !== null ? `Net: ${s.net.toFixed(2)}` : '';
-        const dateStr = s.date ? new Date(s.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
         const color = getSubjectColorFromList(subjects, s.subject);
+        const dateStr = s.date ? new Date(s.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+        const typeLabel = s.sessionType === 'exam_general' ? '📝 Genel Deneme' : s.sessionType === 'exam_branch' ? '🎯 Branş' : '📚 Çalışma';
+        const typeBadge = `<span class="session-type-badge type-${s.sessionType || 'study'}">${typeLabel}</span>`;
+
+        // Net gösterimi: tek session ise direkt, genel ise alt satırlar
+        let netInfo = '';
+        if (s.sessionType === 'exam_general' && s.examSubjects && s.examSubjects.length > 0) {
+            const subjectNets = s.examSubjects.slice(0, 3).map(es => {
+                const esColor = getSubjectColorFromList(subjects, es.subject);
+                return `<span style="color:${esColor};font-size:0.78rem">${es.subject}: ${es.net !== null ? parseFloat(es.net).toFixed(1) : '-'}</span>`;
+            }).join(' · ');
+            const more = s.examSubjects.length > 3 ? ` <span style="opacity:.5">+${s.examSubjects.length - 3}</span>` : '';
+            netInfo = `<div class="hc-exam-nets">${subjectNets}${more}</div>`;
+        } else if (s.net !== undefined && s.net !== null) {
+            const netClass = s.net > 0 ? 'positive' : s.net < 0 ? 'negative' : '';
+            netInfo = `<div class="hc-net ${netClass}">Net: ${parseFloat(s.net).toFixed(2)}</div>`;
+        }
+
         return `<div class="history-card" data-id="${s.id}">
             <div class="hc-left">
                 <div class="hc-name">${s.name}</div>
                 <div class="hc-meta">
+                    ${typeBadge}
                     ${s.subject ? `<span class="hc-subject" style="background:${color}22;color:${color};border:1px solid ${color}44">${s.subject}</span>` : ''}
                     <span>📅 ${dateStr}</span>
-                    ${s.correct !== undefined ? `<span>✓${s.correct} ✕${s.wrong || 0} ○${s.blank || 0}</span>` : ''}
+                    ${s.correct !== undefined && s.sessionType !== 'exam_general' ? `<span>✓${s.correct} ✕${s.wrong || 0} ○${s.blank || 0}</span>` : ''}
                 </div>
+                ${netInfo}
             </div>
             <div class="hc-right">
                 <div class="hc-duration">${formatDuration(s.duration || 0)}</div>
-                ${netText ? `<div class="hc-net ${netClass}">${netText}</div>` : ''}
             </div>
         </div>`;
     }).join('');
@@ -79,17 +91,41 @@ function showSessionDetail(id, sessions, subjects) {
     if (!s) return;
 
     document.getElementById('detail-title').textContent = s.name;
+    const editBtn = document.getElementById('detail-edit-btn');
+    if (editBtn) editBtn.dataset.sessionId = s.id;
+
     const dateStr = s.date ? new Date(s.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : '-';
     const color = getSubjectColorFromList(subjects, s.subject);
+    const typeLabel = s.sessionType === 'exam_general' ? 'Genel Deneme' : s.sessionType === 'exam_branch' ? 'Branş Denemesi' : 'Çalışma';
 
     let html = `<div class="detail-grid">
-        <div class="detail-item"><div class="di-label">Ders</div><div class="di-value" style="color:${color}">${s.subject || '-'}</div></div>
+        <div class="detail-item"><div class="di-label">Tür</div><div class="di-value">${typeLabel}</div></div>
+        ${s.subject ? `<div class="detail-item"><div class="di-label">Ders</div><div class="di-value" style="color:${color}">${s.subject}</div></div>` : ''}
         <div class="detail-item"><div class="di-label">Tarih</div><div class="di-value">${dateStr}</div></div>
-        <div class="detail-item"><div class="di-label">Süre</div><div class="di-value" style="color:var(--accent-secondary)">${formatDuration(s.duration || 0)}</div></div>
-        <div class="detail-item"><div class="di-label">Net</div><div class="di-value" style="color:var(--accent-primary)">${s.net !== undefined && s.net !== null ? s.net.toFixed(2) : '-'}</div></div>`;
+        <div class="detail-item"><div class="di-label">Süre</div><div class="di-value" style="color:var(--accent-secondary)">${formatDuration(s.duration || 0)}</div></div>`;
 
-    if (s.total !== undefined && s.total !== null) {
-        html += `<div class="detail-item"><div class="di-label">Toplam Soru</div><div class="di-value">${s.total}</div></div>
+    if (s.sessionType === 'exam_general' && s.examSubjects && s.examSubjects.length > 0) {
+        html += `<div class="detail-item full-width"><div class="di-label">Ders Netleri</div>
+            <div class="exam-results-table">
+                <table><thead><tr><th>Ders</th><th>D</th><th>Y</th><th>B</th><th>Net</th></tr></thead><tbody>`;
+        s.examSubjects.forEach(es => {
+            const esColor = getSubjectColorFromList(subjects, es.subject);
+            const netVal = es.net !== null && es.net !== undefined ? parseFloat(es.net).toFixed(2) : '-';
+            html += `<tr>
+                <td style="color:${esColor};font-weight:600">${es.subject}</td>
+                <td style="color:var(--success)">${es.correct || 0}</td>
+                <td style="color:var(--danger)">${es.wrong || 0}</td>
+                <td>${es.blank || 0}</td>
+                <td style="font-weight:700">${netVal}</td>
+            </tr>`;
+        });
+        // Toplam net
+        const totalNet = s.examSubjects.reduce((a, es) => a + (parseFloat(es.net) || 0), 0);
+        html += `</tbody><tfoot><tr><td><strong>Toplam</strong></td><td></td><td></td><td></td><td><strong>${totalNet.toFixed(2)}</strong></td></tr></tfoot></table>
+            </div></div>`;
+    } else if (s.total !== undefined && s.total !== null) {
+        html += `<div class="detail-item"><div class="di-label">Net</div><div class="di-value" style="color:var(--accent-primary)">${s.net !== null ? parseFloat(s.net).toFixed(2) : '-'}</div></div>
+        <div class="detail-item"><div class="di-label">Toplam Soru</div><div class="di-value">${s.total}</div></div>
         <div class="detail-item"><div class="di-label">Doğru</div><div class="di-value" style="color:var(--success)">${s.correct || 0}</div></div>
         <div class="detail-item"><div class="di-label">Yanlış</div><div class="di-value" style="color:var(--danger)">${s.wrong || 0}</div></div>
         <div class="detail-item"><div class="di-label">Boş</div><div class="di-value">${s.blank || 0}</div></div>`;

@@ -70,10 +70,13 @@
             <div class="login-tabs">
                 <button class="login-tab active" id="tab-login">Giriş Yap</button>
                 <button class="login-tab" id="tab-register">Hesap Oluştur</button>
+                <button class="login-tab" id="tab-forgot">Şifremi Unuttum</button>
             </div>
 
             <div class="login-error" id="login-error"></div>
+            <div id="login-success" style="display:none;padding:10px 16px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:8px;color:#10b981;font-size:0.85rem;text-align:center;"></div>
 
+            <!-- Giriş / Kayıt Formu -->
             <form class="login-form" id="auth-form">
                 <div class="form-group">
                     <label for="username">Kullanıcı Adı</label>
@@ -85,67 +88,143 @@
                 </div>
                 <button type="submit" class="login-btn" id="auth-btn">Giriş Yap</button>
             </form>
+
+            <!-- Şifremi Unuttum: Adım 1 (kullanıcı adı) -->
+            <form class="login-form" id="forgot-step1" style="display:none">
+                <p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:4px">Kullanıcı adını gir, güvenlik sorusunu getirelim.</p>
+                <div class="form-group">
+                    <label for="forgot-username">Kullanıcı Adı</label>
+                    <input type="text" id="forgot-username" placeholder="Kullanıcı adın" required>
+                </div>
+                <button type="submit" class="login-btn">Devam Et</button>
+            </form>
+
+            <!-- Şifremi Unuttum: Adım 2 (soru + yeni şifre) -->
+            <form class="login-form" id="forgot-step2" style="display:none">
+                <div class="form-group">
+                    <label>Güvenlik Sorusu</label>
+                    <div id="forgot-question-text" style="padding:10px;background:var(--bg-input);border-radius:8px;font-size:0.9rem;color:var(--text-secondary)"></div>
+                </div>
+                <div class="form-group">
+                    <label for="forgot-answer">Cevabınız</label>
+                    <input type="text" id="forgot-answer" placeholder="Cevabınız" required>
+                </div>
+                <div class="form-group">
+                    <label for="forgot-new-pass">Yeni Şifre</label>
+                    <input type="password" id="forgot-new-pass" placeholder="En az 6 karakter" required minlength="6">
+                </div>
+                <button type="submit" class="login-btn">Şifreyi Sıfırla</button>
+                <button type="button" class="login-btn" id="forgot-back" style="background:var(--bg-card);color:var(--text-muted);margin-top:4px">← Geri</button>
+            </form>
         </div>
     </div>
 
     <script>
         let currentTab = 'login';
+        let forgotUsername = '';
 
-        // Zaten giriş yapılmışsa ana sayfaya yönlendir
-        if (localStorage.getItem('cronos_token')) {
-            window.location.href = '/';
-        }
+        if (localStorage.getItem('cronos_token')) window.location.href = '/';
 
         const tabLoginBtn = document.getElementById('tab-login');
         const tabRegisterBtn = document.getElementById('tab-register');
+        const tabForgotBtn = document.getElementById('tab-forgot');
         const authForm = document.getElementById('auth-form');
+        const forgotStep1 = document.getElementById('forgot-step1');
+        const forgotStep2 = document.getElementById('forgot-step2');
 
         tabLoginBtn.addEventListener('click', () => switchTab('login'));
         tabRegisterBtn.addEventListener('click', () => switchTab('register'));
+        tabForgotBtn.addEventListener('click', () => switchTab('forgot'));
         authForm.addEventListener('submit', handleAuth);
+        forgotStep1.addEventListener('submit', handleForgotStep1);
+        forgotStep2.addEventListener('submit', handleForgotStep2);
+        document.getElementById('forgot-back').addEventListener('click', () => {
+            forgotStep2.style.display = 'none';
+            forgotStep1.style.display = 'flex';
+        });
+
+        function showMsg(msg, type) {
+            const errEl = document.getElementById('login-error');
+            const sucEl = document.getElementById('login-success');
+            if (type === 'success') {
+                errEl.style.display = 'none';
+                sucEl.textContent = msg; sucEl.style.display = 'block';
+                setTimeout(() => sucEl.style.display = 'none', 5000);
+            } else {
+                sucEl.style.display = 'none';
+                errEl.textContent = msg; errEl.classList.add('visible'); errEl.style.display = 'block';
+            }
+        }
 
         function switchTab(tab) {
             currentTab = tab;
             tabLoginBtn.classList.toggle('active', tab === 'login');
             tabRegisterBtn.classList.toggle('active', tab === 'register');
-            document.getElementById('auth-btn').textContent = tab === 'login' ? 'Giriş Yap' : 'Hesap Oluştur';
-            document.getElementById('login-error').classList.remove('visible');
+            tabForgotBtn.classList.toggle('active', tab === 'forgot');
+
+            authForm.style.display = (tab === 'login' || tab === 'register') ? 'flex' : 'none';
+            forgotStep1.style.display = tab === 'forgot' ? 'flex' : 'none';
+            forgotStep2.style.display = 'none';
+
+            document.getElementById('login-error').style.display = 'none';
+            document.getElementById('login-success').style.display = 'none';
+
+            if (tab !== 'forgot') {
+                document.getElementById('auth-btn').textContent = tab === 'login' ? 'Giriş Yap' : 'Hesap Oluştur';
+            }
         }
 
         async function handleAuth(e) {
             e.preventDefault();
             const btn = document.getElementById('auth-btn');
-            const errEl = document.getElementById('login-error');
             btn.disabled = true;
-            errEl.classList.remove('visible');
-
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
-
             try {
                 const endpoint = currentTab === 'login' ? '/api/auth/login' : '/api/auth/register';
                 const res = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
                 const data = await res.json();
-
-                if (!res.ok) {
-                    errEl.textContent = data.error || 'Bir hata oluştu.';
-                    errEl.classList.add('visible');
-                    btn.disabled = false;
-                    return;
-                }
-
+                if (!res.ok) { showMsg(data.error || 'Bir hata oluştu.', 'error'); btn.disabled = false; return; }
                 localStorage.setItem('cronos_token', data.token);
                 localStorage.setItem('cronos_user', JSON.stringify(data.user));
                 window.location.href = '/';
             } catch (err) {
-                errEl.textContent = 'Sunucuya bağlanılamadı.';
-                errEl.classList.add('visible');
-                btn.disabled = false;
+                showMsg('Sunucuya bağlanılamadı.', 'error'); btn.disabled = false;
             }
+        }
+
+        async function handleForgotStep1(e) {
+            e.preventDefault();
+            forgotUsername = document.getElementById('forgot-username').value.trim();
+            try {
+                const res = await fetch('/api/auth/security-question?username=' + encodeURIComponent(forgotUsername));
+                const data = await res.json();
+                if (!res.ok) { showMsg(data.error || 'Kullanıcı bulunamadı.', 'error'); return; }
+                document.getElementById('forgot-question-text').textContent = data.question;
+                forgotStep1.style.display = 'none';
+                forgotStep2.style.display = 'flex';
+                document.getElementById('login-error').style.display = 'none';
+            } catch (err) { showMsg('Sunucu hatası.', 'error'); }
+        }
+
+        async function handleForgotStep2(e) {
+            e.preventDefault();
+            const answer = document.getElementById('forgot-answer').value.trim();
+            const newPass = document.getElementById('forgot-new-pass').value;
+            try {
+                const res = await fetch('/api/auth/forgot-password', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: forgotUsername, security_answer: answer, new_password: newPass })
+                });
+                const data = await res.json();
+                if (!res.ok) { showMsg(data.error || 'Hata oluştu.', 'error'); return; }
+                showMsg('Şifren başarıyla sıfırlandı! Şimdi giriş yapabilirsin.', 'success');
+                switchTab('login');
+                forgotStep2.reset();
+            } catch (err) { showMsg('Sunucu hatası.', 'error'); }
         }
     </script>
 </body>
