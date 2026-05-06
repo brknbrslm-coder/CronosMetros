@@ -18,7 +18,12 @@ function authenticateToken(req, res, next) {
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
-        req.user = { id: decoded.id, username: decoded.username };
+        // Eski tokenlar 'userId', yeni tokenlar 'id' alanını kullanıyor — her ikisini dene
+        const userId = decoded.id || decoded.userId;
+        if (!userId) {
+            return res.status(401).json({ error: 'Geçersiz token yapısı. Lütfen tekrar giriş yapın.' });
+        }
+        req.user = { id: userId, username: decoded.username };
         next();
     } catch (err) {
         if (err.name === 'TokenExpiredError') {
