@@ -220,11 +220,44 @@
 
                         <!-- TEK DERS bölümü (study / exam_branch) -->
                         <div id="single-subject-section">
-                            <div class="form-group">
+                            <!-- Study: serbest metin -->
+                            <div class="form-group" id="study-subject-group">
                                 <label for="session-subject">Ders *</label>
                                 <input type="text" id="session-subject" placeholder="örn: TYT Matematik" list="subject-datalist" autocomplete="off">
-                                <datalist id="subject-datalist"></datalist>
-                                <datalist id="topic-datalist"></datalist>
+                            </div>
+
+                            <!-- Branş: YKS müfredatından dropdown -->
+                            <div class="form-group hidden" id="branch-subject-group">
+                                <label for="branch-subject-select">Branş Dersi *</label>
+                                <select id="branch-subject-select">
+                                    <option value="">-- Branş Seçin --</option>
+                                    <optgroup label="── TYT ──">
+                                        <option>TYT Türkçe</option>
+                                        <option>TYT Matematik</option>
+                                        <option>TYT Geometri</option>
+                                        <option>TYT Fizik</option>
+                                        <option>TYT Kimya</option>
+                                        <option>TYT Biyoloji</option>
+                                        <option>TYT Tarih</option>
+                                        <option>TYT Coğrafya</option>
+                                        <option>TYT Felsefe</option>
+                                        <option>TYT Din Kültürü</option>
+                                    </optgroup>
+                                    <optgroup label="── AYT ──">
+                                        <option>AYT Matematik</option>
+                                        <option>AYT Geometri</option>
+                                        <option>AYT Fizik</option>
+                                        <option>AYT Kimya</option>
+                                        <option>AYT Biyoloji</option>
+                                        <option>AYT Türk Dili ve Edebiyatı</option>
+                                        <option>AYT Tarih-1</option>
+                                        <option>AYT Coğrafya-1</option>
+                                        <option>AYT Tarih-2</option>
+                                        <option>AYT Coğrafya-2</option>
+                                        <option>AYT Felsefe Grubu</option>
+                                        <option>AYT Din Kültürü</option>
+                                    </optgroup>
+                                </select>
                             </div>
                             <!-- Skor -->
                             <div id="score-section">
@@ -261,9 +294,12 @@
                             <div class="form-divider"><span>Yanlış Konular (Opsiyonel)</span></div>
                             <div class="form-group">
                                 <input type="text" id="wrong-topic-input" placeholder="Konu adı yaz, Enter'a bas" list="topic-datalist">
+                                <datalist id="topic-datalist"></datalist>
+                                <datalist id="subject-datalist"></datalist>
                                 <div class="tag-list" id="wrong-topics-list"></div>
                             </div>
                         </div>
+
 
                         <!-- Notlar -->
                         <div class="form-divider"><span>Notlar (Opsiyonel)</span></div>

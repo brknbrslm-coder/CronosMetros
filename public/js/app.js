@@ -114,12 +114,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Session type değişince form güncelle
     document.getElementById('session-type')?.addEventListener('change', handleSessionTypeChange);
 
+    // Branş seçilince konu önerileri güncelle
+    document.getElementById('branch-subject-select')?.addEventListener('change', updateTopicSuggestionsFromBranch);
+
     function handleSessionTypeChange() {
         const type = document.getElementById('session-type')?.value || 'study';
         const singleSubjectSection = document.getElementById('single-subject-section');
         const examSection = document.getElementById('exam-section');
         const scoreSection = document.getElementById('score-section');
         const wrongTopicsSection = document.getElementById('wrong-topics-section');
+        const studySubjectGroup = document.getElementById('study-subject-group');
+        const branchSubjectGroup = document.getElementById('branch-subject-group');
 
         if (type === 'exam_general') {
             singleSubjectSection?.classList.add('hidden');
@@ -132,44 +137,68 @@ document.addEventListener('DOMContentLoaded', async () => {
             examSection?.classList.add('hidden');
             scoreSection?.classList.remove('hidden');
             wrongTopicsSection?.classList.remove('hidden');
-            populateSubjectInput();
+
+            if (type === 'exam_branch') {
+                studySubjectGroup?.classList.add('hidden');
+                branchSubjectGroup?.classList.remove('hidden');
+                // Branch subject değişince konu önerilerini güncelle
+                updateTopicSuggestionsFromBranch();
+            } else {
+                studySubjectGroup?.classList.remove('hidden');
+                branchSubjectGroup?.classList.add('hidden');
+                populateSubjectInput();
+            }
         }
     }
 
-    // Ders autocomplete
+    // Ders autocomplete (study modu)
     async function populateSubjectInput() {
         const subjects = await loadSubjects();
         const datalist = document.getElementById('subject-datalist');
         if (datalist) {
             datalist.innerHTML = subjects.map(s => `<option value="${s.name}">`).join('');
         }
-        // Konu önerilerini güncelle
+        // Konu önerilerini wire et
         const subjectEl = document.getElementById('session-subject');
-        if (subjectEl) {
+        if (subjectEl && !subjectEl._topicWired) {
             subjectEl.addEventListener('change', updateTopicSuggestions);
             subjectEl.addEventListener('input', updateTopicSuggestions);
+            subjectEl._topicWired = true;
         }
+        updateTopicSuggestions();
     }
 
-    function updateTopicSuggestions() {
-        const subject = document.getElementById('session-subject')?.value || '';
-        const suggestions = getTopicSuggestions(subject);
+    // Branch select değişince konu önerilerini güncelle
+    function updateTopicSuggestionsFromBranch() {
+        const subject = document.getElementById('branch-subject-select')?.value || '';
+        fillTopicDatalist(subject);
+    }
+
+    // Seçili derse göre topic-datalist'i doldur
+    function fillTopicDatalist(subject) {
+        const suggestions = typeof getTopicSuggestions === 'function' ? getTopicSuggestions(subject) : [];
         const datalist = document.getElementById('topic-datalist');
         if (datalist) {
             datalist.innerHTML = suggestions.map(t => `<option value="${t}">`).join('');
         }
     }
 
-    // Şablon seçimini yükle
+    function updateTopicSuggestions() {
+        const subject = document.getElementById('session-subject')?.value || '';
+        fillTopicDatalist(subject);
+    }
+
+    // Şablon seçimini yükleti — türe göre filtreli
     async function loadTemplatesIntoSelect() {
+        const type = document.getElementById('session-type')?.value || 'study';
         const templates = await loadTemplates();
         const sel = document.getElementById('template-select');
         if (!sel) return;
         sel.innerHTML = '<option value="">-- Şablon Seç veya Manuel --</option>';
-        templates.forEach(t => {
-            if (t.sessionType === 'exam_general') {
-                sel.innerHTML += `<option value="${t.id}" data-builtin="${t.isBuiltin}">${t.isBuiltin ? '⭐ ' : ''}${t.name}</option>`;
-            }
+        // Genel deneme için sadece exam_general şablonları göster
+        const filtered = templates.filter(t => t.sessionType === 'exam_general');
+        filtered.forEach(t => {
+            sel.innerHTML += `<option value="${t.id}" data-builtin="${t.isBuiltin}">${t.isBuiltin ? '⭐ ' : ''}${t.name}</option>`;
         });
         sel._templates = templates;
     }
@@ -305,7 +334,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!name) { showToast('Kayıt adı gerekli!', 'error'); return; }
 
         const type = document.getElementById('session-type')?.value || 'study';
-        const subject = document.getElementById('session-subject')?.value.trim();
+        // Branş denemesinde subject branch-select'ten gelir
+        let subject;
+        if (type === 'exam_branch') {
+            subject = document.getElementById('branch-subject-select')?.value;
+        } else {
+            subject = document.getElementById('session-subject')?.value.trim();
+        }
         if (type !== 'exam_general' && !subject) { showToast('Ders seçimi gerekli!', 'error'); return; }
 
         const duration = getDurationFromInputs();
