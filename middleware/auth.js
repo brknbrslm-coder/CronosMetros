@@ -1,8 +1,8 @@
 const jwt = require('jsonwebtoken');
 
 // Güvenli secret key — production'da env variable kullanılmalı
-const JWT_SECRET = process.env.JWT_SECRET || 'cronos_metros_secret_key_2026_change_in_production';
-const JWT_EXPIRES_IN = '30d'; // 30 gün geçerli
+const JWT_SECRET = process.env.JWT_SECRET || 'cronosmetros_secret_2024';
+const JWT_EXPIRES_IN = '30d';
 
 function generateToken(userId, username) {
     return jwt.sign({ userId, username }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
@@ -18,7 +18,7 @@ function authenticateToken(req, res, next) {
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
-        req.user = { id: decoded.userId, username: decoded.username };
+        req.user = { id: decoded.id, username: decoded.username };
         next();
     } catch (err) {
         if (err.name === 'TokenExpiredError') {
