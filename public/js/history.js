@@ -90,6 +90,9 @@ function showSessionDetail(id, sessions, subjects) {
     const s = sessions.find(x => x.id === id);
     if (!s) return;
 
+    // Edit butonu için session'u global'e kaydet
+    window._currentDetailSession = s;
+
     document.getElementById('detail-title').textContent = s.name;
     const editBtn = document.getElementById('detail-edit-btn');
     if (editBtn) editBtn.dataset.sessionId = s.id;

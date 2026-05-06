@@ -88,6 +88,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             const subjectEl = document.getElementById('session-subject');
             if (subjectEl && sessionToEdit.subject) subjectEl.value = sessionToEdit.subject;
 
+            // Branş denemesinde dropdown'a da ata
+            if (sessionToEdit.sessionType === 'exam_branch') {
+                const branchSel = document.getElementById('branch-subject-select');
+                if (branchSel && sessionToEdit.subject) branchSel.value = sessionToEdit.subject;
+                updateTopicSuggestionsFromBranch();
+            }
+
             if (sessionToEdit.sessionType !== 'exam_general') {
                 const totalEl = document.getElementById('session-total');
                 const correctEl = document.getElementById('session-correct');
@@ -400,11 +407,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Detay modalında "Düzenle" butonu
     document.getElementById('detail-edit-btn')?.addEventListener('click', async () => {
-        const sessionId = document.getElementById('detail-edit-btn').dataset.sessionId;
-        if (!sessionId) return;
-        const sessions = await loadSessions();
-        const s = sessions.find(x => x.id === sessionId);
-        if (!s) return;
+        const s = window._currentDetailSession;
+        if (!s) { showToast('Oturum verisi bulunamadı, lütfen sayfayı yenileyin.', 'error'); return; }
         document.getElementById('modal-detail').classList.add('hidden');
         await openSaveModal(s.duration, s);
     });
